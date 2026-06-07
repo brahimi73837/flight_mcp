@@ -1,49 +1,153 @@
+/* =========================================================================
+   COCKPIT INSTRUMENTATION — design tokens & base
+   Implements docs/design/cockpit-language.md. Phosphor CRT on near-black glass.
+   ========================================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* surfaces */
+  --void: #06080a;
+  --panel: #0c1116;
+  --panel-raised: #11181f;
+  --bezel: #1b2630;
+  --grid-line: rgba(120, 160, 150, 0.06);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  /* phosphor ink */
+  --amber: #ffb000;
+  --amber-dim: #b07a2a;
+  --green: #27f09b;
+  --green-dim: #14794f;
+  --cyan: #3ad7ff;
+  --red: #ff4d3d;
+  --red-dim: #7a2b25;
 
-html {
-  height: 100%;
-}
+  /* text */
+  --ink: #d8e6e2;
+  --ink-dim: #7e9088;
+  --ink-faint: #45524d;
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
+  /* glow */
+  --glow-amber: 0 0 8px rgba(255, 176, 0, 0.45);
+  --glow-green: 0 0 9px rgba(39, 240, 155, 0.5);
+  --glow-cyan: 0 0 8px rgba(58, 215, 255, 0.4);
 
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --mono: var(--font-mono), "IBM Plex Mono", ui-monospace, monospace;
+  --display: var(--font-display), "Saira", system-ui, sans-serif;
+
+  --bezel-shadow: inset 0 0 0 1px var(--bezel),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 30px rgba(0, 0, 0, 0.55);
 }
 
 * {
   box-sizing: border-box;
-  padding: 0;
+}
+
+html,
+body {
   margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-feature-settings: "tnum" 1, "zero" 1; /* tabular figures */
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* page atmosphere: faint chart grid + radial vignette */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    radial-gradient(
+      ellipse 120% 80% at 50% -10%,
+      rgba(39, 240, 155, 0.05),
+      transparent 60%
+    ),
+    radial-gradient(ellipse 100% 100% at 50% 120%, rgba(0, 0, 0, 0.7), transparent);
+  background-size: 28px 28px, 28px 28px, 100% 100%, 100% 100%;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+/* scanline overlay */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.12) 3px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+
+/* ---- typography helpers ---- */
+.label {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 600;
+  color: var(--ink-dim);
+  font-size: 0.66rem;
+}
+.readout {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.amber { color: var(--amber); text-shadow: var(--glow-amber); }
+.green { color: var(--green); text-shadow: var(--glow-green); }
+.cyan { color: var(--cyan); text-shadow: var(--glow-cyan); }
+.red { color: var(--red); }
+
+/* ---- panel / bezel ---- */
+.panel {
+  position: relative;
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+  border-radius: 10px;
+  box-shadow: var(--bezel-shadow);
+}
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.08) 3px
+  );
+  opacity: 0.5;
+}
+
+/* ---- focus ring (accessibility) ---- */
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* ---- blink (annunciator dot / live state) ---- */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+.blink { animation: blink 1.1s steps(1) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .blink { animation: none; }
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
   }
 }
+
+button { font-family: var(--display); cursor: pointer; }
+input { font-family: var(--mono); }
