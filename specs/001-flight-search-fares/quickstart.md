@@ -18,10 +18,20 @@ python3 -m venv .venv
 cd web
 npm install
 cp .env.example .env.local              # FLIGHT_MCP_URL=http://127.0.0.1:8000/mcp
+# For the AI Assistant tab, add a free Google AI Studio key to web/.env.local:
+#   GOOGLE_GENERATIVE_AI_API_KEY=...    (https://aistudio.google.com/apikey)
 npm run dev                             # http://localhost:3000
 ```
-Open http://localhost:3000 → enter a route (e.g. JFK → LAX), **Execute Search**;
-toggle **Fare Track** → **Scan Fares**; click a calendar cell to drill into that day.
+Open http://localhost:3000:
+- **Search** → enter a route (e.g. JFK → LAX), **Execute Search**.
+- **Fare Track** → **Scan Fares**; click a calendar cell to drill into that day.
+- **Assistant** → ask in plain language (needs the Gemini key). Try:
+  - "Cheapest nonstop from New York to Los Angeles about a month from now"
+  - "When is it cheapest to fly JFK to LAX in early July?"
+  - follow up: "make it business class"
+
+> Note: Search/Fare Track need no key. The Assistant (Spec 002) uses Gemini via
+> the MCP tools — see [`specs/002-conversational-search/`](../002-conversational-search/).
 
 ## 3. Verify the acceptance criteria
 

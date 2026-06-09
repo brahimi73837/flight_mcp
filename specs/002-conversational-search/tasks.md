@@ -29,6 +29,6 @@
 - **Checkpoint C:** ✅ conversational search works in the cockpit.
 
 ## Phase D — Wrap-up
-- ☐ **T230** Update top-level `README.md` (chat mode + how it uses the MCP) and
+- ☑ **T230** Update top-level `README.md` (chat mode + how it uses the MCP) and
   `quickstart.md` (env + try-it prompts); screenshot.
-- ☐ **T231** Final pass AC-1..AC-7; confirm key absent from repo + client bundle (AC-6).
+- ☑ **T231** Final pass AC-1..AC-7; confirm key absent from repo + client bundle (AC-6).
