@@ -5,6 +5,7 @@ import { ModeToggle, type Mode } from "./components/ModeToggle";
 import { StatusStrip } from "./components/StatusStrip";
 import { ReadoutRow } from "./components/ReadoutRow";
 import { FareGrid } from "./components/FareGrid";
+import { Comms } from "./components/Comms";
 import { isApiError, type FareCell, type FlightOffer } from "@/lib/types";
 import s from "./deck.module.css";
 
@@ -115,13 +116,20 @@ export default function Page() {
     : error
       ? "error"
       : "idle";
-  const count = mode === "search" ? offers?.length ?? null : cells?.length ?? null;
+  const modeLabel =
+    mode === "search" ? "SEARCH" : mode === "fares" ? "FARE TRACK" : "COMMS";
+  const count =
+    mode === "search"
+      ? offers?.length ?? null
+      : mode === "fares"
+        ? cells?.length ?? null
+        : null;
 
   return (
     <main className={s.deck}>
       <StatusStrip
-        route={route}
-        mode={mode === "search" ? "SEARCH" : "FARE TRACK"}
+        route={mode === "assistant" ? "" : route}
+        mode={modeLabel}
         count={count}
         state={state}
         right={
@@ -131,6 +139,12 @@ export default function Page() {
         }
       />
 
+      {mode === "assistant" ? (
+        <section className={`panel ${s.cmd}`} style={{ padding: 18 }}>
+          <Comms />
+        </section>
+      ) : (
+        <>
       <CommandBar
         mode={mode}
         form={form}
@@ -179,6 +193,8 @@ export default function Page() {
           </>
         )}
       </section>
+        </>
+      )}
     </main>
   );
 }
