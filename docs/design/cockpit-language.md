@@ -105,13 +105,6 @@ red = caution.
   as a physical rocker toggle. Asymmetric, dense, grid-aligned — not centered
   cards. Generous use of monospace alignment and panel dividers.
 
-## Built result (live screenshots)
-Captured from the running app against live Google Flights data:
-- `screens/01-command-bar.png` — the FMS command bar / annunciator strip.
-- `screens/02-search-readouts.png` — flight offers as MFD readout rows with
-  duration arcs and radial price gauges.
-- `screens/03-fare-grid.png` — the heat-graded Fare Tracker calendar.
-
 ## Accessibility
 - Min contrast 4.5:1 for any text-bearing element (accents reserved for large
   numerals/short labels). Visible focus ring (cyan). Keyboard-navigable toggles

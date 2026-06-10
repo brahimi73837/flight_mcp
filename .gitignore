@@ -21,3 +21,6 @@ node_modules/
 *.swp
 .idea/
 .vscode/
+
+# Generated screenshots (kept out of the portfolio repo)
+docs/design/screens/

@@ -41,7 +41,7 @@ Legend: ☐ todo · ☑ done · `[P]` parallel-safe
 - ☑ **T034** `[P]` `FareGrid` heat calendar; cell → triggers a day search.
 - ☑ **T035** `app/page.tsx` — wire mode state, call `/api/*`, render readouts/grid; Motion staggered reveal + needle sweeps; `prefers-reduced-motion`.
 - ☑ **T036** Verify in-browser: live search + fare calendar + autocomplete + drill-down; distinctiveness check (AC-2, AC-6).
-- **Checkpoint D:** ✅ full app works against live data in the cockpit aesthetic (`docs/design/screens/`).
+- **Checkpoint D:** ✅ full app works against live data in the cockpit aesthetic.
 
 ## Phase E — Wrap-up
 - ☑ **T040** Top-level `README.md` (narrative + how to run both halves) + `quickstart.md`.

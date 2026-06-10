@@ -62,7 +62,7 @@ curl -i "http://localhost:3000/api/search?origin=ZZZ&destination=LAX&departure_d
 | AC-3 airport| `resolve_airport('new york')` → JFK/LGA/EWR; `'jfk'` first |
 | AC-4 routes | all three `/api/*` return contract JSON |
 | AC-5 errors | bad airport/past date/bad enum → 400 envelope |
-| AC-6 design | cockpit aesthetic (see `docs/design/screens/`) |
+| AC-6 design | cockpit aesthetic (verified visually in the running app) |
 
 ## 4. (Optional) Claude Desktop
 Point Claude Desktop at the stdio transport — see `mcp-server/README.md`.

@@ -1,18 +1,20 @@
 # FLIGHT DECK — Flight Search, Fare Tracker & AI Assistant
 
-An avionics-grade flight app. A Python **MCP server** wraps the
-[`fli`](https://github.com/punitarani/fli) library (Google Flights) and exposes
-clean tools; a **Next.js** frontend with a **cockpit instrumentation** aesthetic
-consumes them — both through a manual instrument UI and through a **conversational
-AI assistant** (Google Gemini) that uses the **MCP server as its toolset**.
+An avionics-grade flight app, built **spec-first**. A Python **MCP server** wraps
+the [`fli`](https://github.com/punitarani/fli) library (Google Flights) and
+exposes clean tools; a **Next.js** frontend with a **cockpit instrumentation**
+aesthetic consumes them — both through a manual instrument UI and through a
+**conversational AI assistant** (Google Gemini) that uses the **MCP server as its
+toolset**.
 
-Built with **GitHub spec-kit-style spec-driven development** — every decision is
-written down, and `git log` replays the build in order. Two feature specs:
-[001 search & fares](specs/001-flight-search-fares/spec.md),
+This is a portfolio project demonstrating two things end to end:
+1. **Spec-driven development** (GitHub spec-kit style) — every decision is written
+   down *before* the code, and `git log` replays the build in order.
+2. **The Model Context Protocol (MCP)** as the integration backbone — the same MCP
+   tools power the manual UI, the API, an LLM agent, and Claude Desktop.
+
+Two feature specs: [001 search & fares](specs/001-flight-search-fares/spec.md) ·
 [002 conversational search](specs/002-conversational-search/spec.md).
-
-![Search readouts](docs/design/screens/02-search-readouts.png)
-![AI assistant](docs/design/screens/05-comms-answer.png)
 
 ---
 
@@ -54,29 +56,83 @@ server also runs over **stdio** for Claude Desktop. See
 [ADR-0004](docs/adr/0004-mcp-transport-and-frontend-wiring.md),
 [ADR-0007](docs/adr/0007-conversational-agent-over-mcp.md).
 
-## Run it
-See [`quickstart.md`](specs/001-flight-search-fares/quickstart.md).
-TL;DR — two terminals:
+---
+
+## Getting started (manual, step by step)
+
+### Prerequisites
+- **Python 3.12+** (built on 3.14) and **Node 20+** (built on 24, with `npm`).
+- No paid services. The Search and Fare-Track features need **no key**; the
+  **Assistant** needs a free **Google AI Studio** API key.
+
+### 1 — Clone
 ```bash
-# terminal 1 — MCP server
-cd mcp-server && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python server.py --http
-# terminal 2 — web
-cd web && npm install && cp .env.example .env.local
-# add your free Google AI Studio key to web/.env.local for the Assistant:
-#   GOOGLE_GENERATIVE_AI_API_KEY=...   (https://aistudio.google.com/apikey)
-npm run dev                                              # localhost:3000
+git clone https://github.com/brahimi73837/flight_mcp.git
+cd flight_mcp
 ```
-Search and Fare Track work without a key; the **Assistant** tab needs the Gemini
-key (server-side only — never sent to the browser, never committed).
+
+### 2 — Start the MCP server (terminal 1)
+```bash
+cd mcp-server
+python3 -m venv .venv                       # create an isolated environment
+.venv/bin/pip install -r requirements.txt   # installs fli (`flights`) + mcp SDK
+.venv/bin/python server.py --http           # Streamable HTTP on http://127.0.0.1:8000/mcp
+```
+Leave it running. (For Claude Desktop instead, run `server.py --stdio` — see
+[`mcp-server/README.md`](mcp-server/README.md).)
+
+### 3 — Configure the web app (terminal 2)
+```bash
+cd web
+npm install
+cp .env.example .env.local
+```
+Open `web/.env.local` and set your key for the Assistant (the other tabs work
+without it):
+```
+FLIGHT_MCP_URL=http://127.0.0.1:8000/mcp
+GOOGLE_GENERATIVE_AI_API_KEY=YOUR_FREE_KEY   # https://aistudio.google.com/apikey
+GEMINI_MODEL=gemini-2.5-flash
+```
+> The key is read **server-side only** — it is never sent to the browser and
+> `.env.local` is gitignored, so it never lands in git.
+
+### 4 — Start the web app
+```bash
+npm run dev                                 # http://localhost:3000
+```
+
+### 5 — Use it
+Open **http://localhost:3000**. Three modes via the top-right rocker toggle:
+
+- **SEARCH** — type a route (e.g. `JFK` → `LAX`, or just "new york"), pick a date,
+  optionally set cabin/stops, hit **Execute Search**. Offers appear as readout
+  rows with price gauges.
+- **FARE TRACK** — set a route and a date window, **Scan Fares**. A heat calendar
+  shows the cheapest fare per day; click any day to drill into that day's flights.
+- **ASSISTANT** — just talk. Try:
+  - *"Cheapest nonstop from New York to Los Angeles about a month from now"*
+  - *"When is it cheapest to fly JFK to LAX in early July?"*
+  - follow up: *"make it business class"*
+  The assistant calls the MCP tools and renders the real flights inline.
+
+### 6 — (Optional) Use the MCP server from Claude Desktop
+The same server speaks **stdio**, so any MCP client can use the flight tools.
+Config snippet in [`mcp-server/README.md`](mcp-server/README.md).
 
 ## Testing
-End-to-end runner: `cd web && npm run e2e` (with both servers up) checks every
-acceptance criterion against live data and prints PASS/SKIP/FAIL. Latest run and
-findings: [`docs/E2E-TEST-REPORT.md`](docs/E2E-TEST-REPORT.md) — data plane 6/6
-green; the agent is verified live (real flights), with Google-Flights search
-throttling and LLM free-tier limits detected, mitigated (server-side retry), and
-handled gracefully.
+End-to-end runner (with both servers up):
+```bash
+cd web && npm run e2e
+```
+It exercises the whole stack against live data — the HTTP API (search / fares /
+airports / error handling) and the Gemini agent driving the MCP tools — and prints
+`PASS`/`SKIP`/`FAIL` per acceptance criterion. It is deliberately tolerant of the
+two **external** conditions this project can hit: Google Flights throttling its
+search endpoint (the server retries; the test tries several routes) and the LLM
+free-tier rate limit (the agent shows a friendly message and the test skips rather
+than fail). See [`specs/001-…/quickstart.md`](specs/001-flight-search-fares/quickstart.md)
+for the per-criterion checklist.
 
 ## Repo layout / where the learning lives
 | path | what |
@@ -85,14 +141,14 @@ handled gracefully.
 | [`specs/001-flight-search-fares/`](specs/001-flight-search-fares/) | spec + research + plan + data-model + contracts + tasks + quickstart |
 | [`specs/002-conversational-search/`](specs/002-conversational-search/) | the AI-assistant spec, plan, chat-API contract, tasks |
 | [`docs/adr/`](docs/adr/) | one ADR per meaningful decision (0001–0008) |
-| [`docs/design/cockpit-language.md`](docs/design/cockpit-language.md) | the design language + tokens + screenshots |
+| [`docs/design/cockpit-language.md`](docs/design/cockpit-language.md) | the design language + tokens |
 | [`mcp-server/`](mcp-server/) | the Python MCP server (3 tools, fli mapping, airport matcher) |
 | [`web/`](web/) | the Next.js cockpit frontend (`app/api/chat`, `lib/flightTools.ts`, `components/Comms.tsx`) |
 
 ## How to replay the build
 `git log --oneline` reads top-to-bottom as: **constitution → spec + research →
 ADRs + design → plan + contracts + tasks → MCP server → web API → cockpit UI →
-this README.** Implementation commits reference the `tasks.md` IDs (`T0xx`).
+AI assistant.** Implementation commits reference the `tasks.md` IDs (`T0xx`/`T2xx`).
 
 ## Key decisions (full reasoning in `docs/adr/`)
 1. **`fli` is the single data source** — adopted only after a live probe returned
@@ -120,4 +176,5 @@ Python 3.14 · `flights` (fli) · `mcp` (FastMCP) · Next.js 16 (App Router, TS)
 Motion · IBM Plex Mono + Saira.
 
 > Disclaimer: `fli` uses Google Flights' private API (unofficial). For learning
-> and personal use; prices are indicative.
+> and personal use; prices are indicative. Google may rate-limit heavy use from a
+> single IP — the server retries and the UI degrades gracefully.
