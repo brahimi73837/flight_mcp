@@ -70,6 +70,14 @@ npm run dev                                              # localhost:3000
 Search and Fare Track work without a key; the **Assistant** tab needs the Gemini
 key (server-side only — never sent to the browser, never committed).
 
+## Testing
+End-to-end runner: `cd web && npm run e2e` (with both servers up) checks every
+acceptance criterion against live data and prints PASS/SKIP/FAIL. Latest run and
+findings: [`docs/E2E-TEST-REPORT.md`](docs/E2E-TEST-REPORT.md) — data plane 6/6
+green; the agent is verified live (real flights), with Google-Flights search
+throttling and LLM free-tier limits detected, mitigated (server-side retry), and
+handled gracefully.
+
 ## Repo layout / where the learning lives
 | path | what |
 |------|------|

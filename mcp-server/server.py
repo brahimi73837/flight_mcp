@@ -16,6 +16,7 @@ See ADR-0002 (own server over bundled fli-mcp) and ADR-0004 (transports).
 from __future__ import annotations
 
 import sys
+import time
 from datetime import date, datetime
 
 from mcp.server.fastmcp import FastMCP
@@ -78,6 +79,30 @@ def _resolve_or_raise(token: str, field: str):
     if ap is None:
         raise LookupError(f"could not resolve {field} {token!r} to an airport")
     return ap
+
+
+def _search_with_retry(search_fn, filters, attempts: int = 3, backoff: float = 1.2):
+    """Run an fli search, retrying when it returns an empty/None result.
+
+    Google Flights' detailed-search endpoint intermittently returns nothing for a
+    query that succeeds on retry (observed: same route empty on one call, full on
+    the next). A true "no flights" is rare for real routes, so a few bounded
+    retries materially improves reliability (ADR-0001 upstream risk). Raises the
+    last upstream exception if every attempt errored.
+    """
+    last_exc = None
+    for attempt in range(attempts):
+        try:
+            results = search_fn().search(filters)
+            if results:
+                return results
+        except _UPSTREAM as e:
+            last_exc = e
+        if attempt < attempts - 1:
+            time.sleep(backoff)
+    if last_exc is not None:
+        raise last_exc
+    return []
 
 
 # --------------------------------------------------------------------------- #
@@ -149,7 +174,7 @@ def search_flights(
     )
 
     try:
-        results = SearchFlights().search(filters) or []
+        results = _search_with_retry(SearchFlights, filters)
     except _UPSTREAM as e:
         return error("UPSTREAM", f"Google Flights search failed: {e}")
     except Exception as e:  # defensive: never leak a traceback (FR-05)
