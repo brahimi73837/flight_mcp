@@ -24,3 +24,9 @@ node_modules/
 
 # Generated screenshots (kept out of the portfolio repo)
 docs/design/screens/
+
+# Restored-but-untracked local files (kept locally, not in the portfolio repo)
+docs/E2E-TEST-REPORT.md
+web/AGENTS.md
+web/CLAUDE.md
+web/README.md

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import sys
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from mcp.server.fastmcp import FastMCP
 
@@ -105,6 +105,26 @@ def _search_with_retry(search_fn, filters, attempts: int = 3, backoff: float = 1
     return []
 
 
+_RATE_HINTS = (
+    "429",
+    "rate limit",
+    "ratelimit",
+    "quota",
+    "too many",
+    "resource_exhausted",
+    "temporarily blocked",
+    "blocked",
+    "503",
+)
+
+
+def _classify_upstream(exc) -> str:
+    """Tell a rate-limit/throttle apart from a generic upstream failure, so the
+    UI and tests can distinguish 'we are being rate-limited' from a real bug."""
+    msg = str(exc).lower()
+    return "RATE_LIMITED" if any(h in msg for h in _RATE_HINTS) else "UPSTREAM"
+
+
 # --------------------------------------------------------------------------- #
 # Tools
 # --------------------------------------------------------------------------- #
@@ -176,7 +196,7 @@ def search_flights(
     try:
         results = _search_with_retry(SearchFlights, filters)
     except _UPSTREAM as e:
-        return error("UPSTREAM", f"Google Flights search failed: {e}")
+        return error(_classify_upstream(e), f"Google Flights search failed: {e}")
     except Exception as e:  # defensive: never leak a traceback (FR-05)
         return error("UPSTREAM", f"unexpected search error: {e}")
 
@@ -205,43 +225,68 @@ def cheapest_dates(
     trip_duration: int | None = None,
     seat_type: str = "economy",
 ) -> dict:
-    """Cheapest fare per date across a window for the Fare Tracker (FR-06..FR-07)."""
+    """Cheapest fare per date across a window for the Fare Tracker (FR-06..FR-07).
+
+    Forgiving with dates: if the window starts in the past (e.g. the user asks for
+    'June or July' and part of June has gone), the start is clamped to today rather
+    than rejected. Only a window that is entirely in the past is an error.
+    """
+    today = date.today()
     try:
         org = _resolve_or_raise(origin, "origin")
         dst = _resolve_or_raise(destination, "destination")
-        start = _parse_date(from_date, "from_date")
-        end = _parse_date(to_date, "to_date")
+        start = datetime.strptime(from_date, "%Y-%m-%d").date()
+        end = datetime.strptime(to_date, "%Y-%m-%d").date()
         seat = mapping.seat_type(seat_type)
     except LookupError as e:
         return error("BAD_AIRPORT", str(e))
     except mapping.ValidationError as e:
         return error("VALIDATION", str(e))
-    except ValueError as e:
-        return error("BAD_DATE", str(e))
+    except (TypeError, ValueError):
+        return error("BAD_DATE", "from_date and to_date must be YYYY-MM-DD")
+    if end < today:
+        return error("BAD_DATE", f"the date window {from_date}..{to_date} is in the past")
+    if start < today:
+        start = today  # clamp a partly-past window to today
     if end < start:
         return error("BAD_DATE", "to_date must be on or after from_date")
 
     round_trip = bool(trip_duration)
+    # A round-trip date search needs BOTH legs as segments (the outbound and the
+    # return); a one-way needs just the outbound. The return's travel_date is the
+    # outbound date plus the trip duration (nights).
+    start_str = start.strftime("%Y-%m-%d")
+    segments = [
+        FlightSegment(
+            departure_airport=[[org, 0]],
+            arrival_airport=[[dst, 0]],
+            travel_date=start_str,
+        )
+    ]
+    if round_trip:
+        return_date = start + timedelta(days=trip_duration)
+        segments.append(
+            FlightSegment(
+                departure_airport=[[dst, 0]],
+                arrival_airport=[[org, 0]],
+                travel_date=return_date.strftime("%Y-%m-%d"),
+            )
+        )
+
     filters = DateSearchFilters(
         trip_type=TripType.ROUND_TRIP if round_trip else TripType.ONE_WAY,
         passenger_info=PassengerInfo(adults=1),
-        flight_segments=[
-            FlightSegment(
-                departure_airport=[[org, 0]],
-                arrival_airport=[[dst, 0]],
-                travel_date=start.strftime("%Y-%m-%d"),
-            )
-        ],
+        flight_segments=segments,
         seat_type=seat,
-        from_date=start.strftime("%Y-%m-%d"),
+        from_date=start_str,
         to_date=end.strftime("%Y-%m-%d"),
         duration=trip_duration if round_trip else None,
     )
 
     try:
-        prices = SearchDates().search(filters) or []
+        prices = _search_with_retry(SearchDates, filters) or []
     except _UPSTREAM as e:
-        return error("UPSTREAM", f"Google Flights date search failed: {e}")
+        return error(_classify_upstream(e), f"Google Flights date search failed: {e}")
     except Exception as e:
         return error("UPSTREAM", f"unexpected date search error: {e}")
 

@@ -51,6 +51,7 @@ export async function callTool<T = unknown>(
 
 /** Map a tool error envelope's code to an HTTP status (contracts/api-routes.md). */
 export function statusForError(code: string): number {
+  if (code === "RATE_LIMITED") return 429;
   if (code === "UPSTREAM") return 502;
   return 400; // BAD_AIRPORT | BAD_DATE | VALIDATION
 }

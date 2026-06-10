@@ -4,12 +4,12 @@ import s from "../deck.module.css";
 export type Mode = "search" | "fares" | "assistant";
 
 const TABS: { v: Mode; l: string }[] = [
-  { v: "search", l: "Search" },
-  { v: "fares", l: "Fare Track" },
   { v: "assistant", l: "Assistant" },
+  { v: "search", l: "Search" },
+  { v: "fares", l: "Fare Track" },
 ];
 
-/** SEARCH / FARE TRACK / ASSISTANT rocker toggle. */
+/** ASSISTANT / SEARCH / FARE TRACK rocker toggle. */
 export function ModeToggle({
   mode,
   onChange,

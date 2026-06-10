@@ -16,7 +16,7 @@ function iso(daysFromNow: number): string {
 }
 
 export default function Page() {
-  const [mode, setMode] = useState<Mode>("search");
+  const [mode, setMode] = useState<Mode>("assistant");
   const [form, setForm] = useState<FormState>({
     origin: "JFK",
     destination: "LAX",
